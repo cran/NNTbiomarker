@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+<title>Planning clinically relevant biomarker validation studies using the “number needed to treat” concept.</title>
+
+<script type="text/javascript">
+window.onload = function() {
+  var imgs = document.getElementsByTagName('img'), i, img;
+  for (i = 0; i < imgs.length; i++) {
+    img = imgs[i];
+    // center an image if it is the only element of its parent
+    if (img.parentElement.childElementCount === 1)
+      img.parentElement.style.textAlign = 'center';
+  }
+};
+</script>
+
+
+
+<!-- MathJax scripts -->
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 13px;
+}
+
+body {
+  max-width: 800px;
+  margin: auto;
+  padding: 1em;
+  line-height: 20px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 {
+   font-size:2.2em;
+}
+
+h2 {
+   font-size:1.8em;
+}
+
+h3 {
+   font-size:1.4em;
+}
+
+h4 {
+   font-size:1.0em;
+}
+
+h5 {
+   font-size:0.9em;
+}
+
+h6 {
+   font-size:0.8em;
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre, img {
+  max-width: 100%;
+}
+pre {
+  overflow-x: auto;
+}
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code {
+  font-size: 92%;
+  border: 1px solid #ccc;
+}
+
+code[class] {
+  background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * {
+      background: transparent !important;
+      color: black !important;
+      filter:none !important;
+      -ms-filter: none !important;
+   }
+
+   body {
+      font-size:12pt;
+      max-width:100%;
+   }
+
+   a, a:visited {
+      text-decoration: underline;
+   }
+
+   hr {
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote {
+      padding-right: 1em;
+      page-break-inside: avoid;
+   }
+
+   tr, img {
+      page-break-inside: avoid;
+   }
+
+   img {
+      max-width: 100% !important;
+   }
+
+   @page :left {
+      margin: 15mm 20mm 15mm 10mm;
+   }
+
+   @page :right {
+      margin: 15mm 10mm 15mm 20mm;
+   }
+
+   p, h2, h3 {
+      orphans: 3; widows: 3;
+   }
+
+   h2, h3 {
+      page-break-after: avoid;
+   }
+}
+</style>
+
+
+
+</head>
+
+<body>
+<h2>Planning clinically relevant biomarker validation studies using the “number needed to treat” concept.</h2>
+
+<p>This package supports stepping through the design of a biomarker validation study. There are two &ldquo;shiny&rdquo;-based web apps for interaction and visualization:</p>
+
+<ul>
+<li><p><a href="#shinyCombinePlots">shinyCombinePlots</a> </p></li>
+<li><p><a href="#shinyElicit">shinyElicit</a></p></li>
+</ul>
+
+<blockquote>
+<p>See the vignette &#39;The_Biomarker_Crisis&#39; for the motivation.</p>
+</blockquote>
+
+<hr/>
+
+<p><a name=shinyCombinePlots id="shinyCombinePlots" > </a></p>
+
+<h2>shinyCombinePlots</h2>
+
+<p>&mdash;&mdash;&gt;   <em>Available at <a href="http://trials.shinyapps.io/shinyCombinePlots">http://trials.shinyapps.io/shinyCombinePlots</a> or via runCombinePlots()</em></p>
+
+<p>Displays plots of an NNT scale together with a &ldquo;contra-Bayes&rdquo; plot which maps from NNTs or PVs (predictive values) to sensitivity and specificity.  </p>
+
+<p>The NNT scale allows a clinical trial designer or team to specify a discomfort zone and values for NNT outside that zone, where clinical decisions would be clearer:</p>
+
+<p>\[NN{T_{Pos}} < \underbrace {NN{T_{Lower}} < NN{T_{Upper}}}_{{\rm{discomfort}}\;{\rm{ range}}} < NN{T_{Neg}}\]</p>
+
+<h4>Prospective study design</h4>
+
+<p>For a prospective study design, the design targets are easy:</p>
+
+<p>\[PPV > 1/NN{T_{Lower}},\quad NPV > 1 - 1/NN{T_{Upper}}\]</p>
+
+<h4>Retrospective study design</h4>
+
+<p>For a retrospective study design, given a prevalence value,
+produce a plot displaying the achievable contours of
+either predictive values or NNT values.
+This plot uses the &ldquo;contra-Bayes&rdquo; theorem, sesp.from.pv(), as follows:</p>
+
+<p>\[
+\begin{array}{l}
+SP = specificity = \frac{{PPO - Odds}}{{PPO - NP{O^{ - 1}}}}\
+SN = sensitivity = \frac{{NPO - Odd{s^{ - 1}}}}{{NPO - PP{O^{ - 1}}}}
+\end{array}
+\]</p>
+
+<p>where </p>
+
+<ul>
+<li><p>\(Odds = Pr(BestToAct) / Pr(BestToWait)\) </p></li>
+<li><p>\(PPO = PPV / (1 – PPV)\) = the “positive predictive odds”</p></li>
+<li><p>\(NPO = NPV / (1 – NPV)\) = the “negative predictive odds”.</p></li>
+</ul>
+
+<p><em><strong>TODO:</strong></em></p>
+
+<p>Calculating anticipated results for prospective and retrospective studies 
+from sample sizes.</p>
+
+<hr/>
+
+<p><a name=shinyElicit id="shinyElicit" > </a></p>
+
+<h2>shinyElicit</h2>
+
+<p>&mdash;&mdash;&gt;    <em>Available at <a href="http://trials.shinyapps.io/shinyElicit">http://trials.shinyapps.io/shinyElicit</a> or via runElicit()</em></p>
+
+<p>Embeds the shinyCombinePlots into a sequence of steps required to elicit the desired clinical applicability. Walking through the steps will lead to a study deign responsive to patients&#39; needs.</p>
+
+<p>The table near the top that drives the process can be shown or hidden with the toggle at the left of the window. The table is shown or hidden via the checkbox at the upper left.</p>
+
+<p><img src=Screenshot-stepsTableInitial.png height="200"></p>
+
+<p>After the user sets each <strong>&ldquo;Is this step done?&rdquo;</strong> toggle  to <strong>&ldquo;Done&rdquo;</strong>, 
+the button at the top is enabled.
+This button is labeled:  </p>
+
+<p><em>When all steps are Done, you can click here for a report</em></p>
+
+<p><em><strong>TODO:</strong></em></p>
+
+<p>The report is not yet implemented. </p>
+
+</body>
+
+</html>
