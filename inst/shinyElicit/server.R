@@ -1,9 +1,11 @@
 ####  shinyElicit server
 appName = "shinyElicit"
+cat("Launching ", appName, "\n")
 
 require("shiny")
 require("xtable")
 require("NNTbiomarker")
+require("knitr")
 
 shinyServerFunction =
   function(input, output, session) {
@@ -12,6 +14,7 @@ shinyServerFunction =
     #source("conveniences.R", local=TRUE)
     source("debugTools.R", local=TRUE)
     source("contraBayesPlot.R", local=TRUE)
+    source("report.R", local=TRUE)
 
 
     observe({
@@ -30,26 +33,29 @@ shinyServerFunction =
     })
     rValues = reactiveValues(
       stepsTable = stepsTableInitial )
+#     stepsTable = data.frame(stringsAsFactors = FALSE,
+#                             `Done?` = character(0),
+#                             `Stepping stone` = character(0), Question = character(0)
+#     )
+#
 
     output$steps = renderTable({
       #catn("Calling renderTable on stepsTable");
       rValues$stepsTable
     })
 
-    #  for(number in 1:nrow(stepsTableInitial)) {
-    #     output[["completedText" %&% number]] =
-    #       renderText({ rValues$stepsTable[number, "Done?"]
-    #                    })
     obs = function(number) {
       assign("obs" %&% number,
              observe({
                newValue <- input[["stepStatus" %&% number]]
-               catn("Toggling stepStatus" %&% number %&% " = " %&% newValue)
-               isolate({ # necessary, or else crash!
-                 rValues$stepsTable[number, "Done?"] = newValue
-                 catn("New value in stepsTable: ",
-                      rValues$stepsTable[number, "Done?"] )
-               })
+               if( ! is.null(newValue)) {
+                 catn("Toggling stepStatus" %&% number %&% " = " %&% newValue)
+                 isolate({ # necessary, or else crash!
+                   rValues$stepsTable[number, "Completed?"] = newValue
+                   catn("New value in stepsTable: ",
+                        rValues$stepsTable[number, "Completed?"] )
+                 })
+               }
              }
              )
       )
@@ -66,16 +72,18 @@ shinyServerFunction =
     ### ### must assign, or else only the last will take.
 
     observe({
-      if(input$who == "" | input$options == "")
-        disableActionButton("stepStatus1", session)
+      if(input$who == "" | input$Option_Treat == "" | input$Option_Wait == "")
+        try(disableActionButton("stepStatus1", session))
     })
     observe({
-      if(!all(sapply(1:nrow(stepsTableInitial),
-                     function(n) "Done"==
+      try(
+        if(!all(sapply(1:nrow(stepsTableInitial),
+                       function(n) "Done"==
                        input[["stepStatus" %&% n]])))
-        disableActionButton("reportButton", session)
-      else
-        enableActionButton("reportButton", session)
+          disableActionButton("reportButton", session)
+        else
+          enableActionButton("reportButton", session)
+      )
     })
 
     source("plotDiscomfort.R", local=TRUE)
@@ -107,6 +115,8 @@ shinyServerFunction =
 #     })
     output$plotDiscomfort = renderPlot({
       plotDiscomfort(drawPosNeg=FALSE,
+                     NNTpos = input$NNTpos,
+                     NNTneg = input$NNTneg,
                      NNTlower = input$NNTlower,
                      NNTupper = input$NNTupper)
     }
@@ -118,6 +128,74 @@ shinyServerFunction =
     NPVderived = reactive({1 - 1/input$NNTneg})
     output$NPVderived = renderText({NPVderived() })
 
+    ## Prospective design:
+
+    observe({
+      cat("PROSPECTIVE INTERVALS (entering)\n")
+      if( ! identical(input$NpatientsProspective, numeric(0))) {
+        sampleSize = print(input$NpatientsProspective)
+        Npositives = print((input$percentPositive/100 * sampleSize))
+        Nnegatives = print(sampleSize - Npositives)
+        NtruePositives = print( PPVderived() * Npositives)
+        NtrueNegatives = print( NPVderived() * Nnegatives)
+        prev = input$prevalence
+        ProspectiveIntervals = NNTintervalsProspective(
+            Npositives = round(Npositives),
+            Nnegatives = round(Nnegatives),
+            NtruePositives = round(NtruePositives),
+            NtrueNegatives = min(Nnegatives - 1, round(NtrueNegatives)),
+            prev = prev
+          )
+        print(str(rValues$ProspectiveIntervals))
+        rValues$ProspectiveIntervals = ProspectiveIntervals
+      }
+      try({
+        rValues$PPV_ProspectiveInterval = rValues$ProspectiveIntervals[
+          c("lower boundary", "upper boundary"), "PPV"]
+        rValues$NPV_ProspectiveInterval = rValues$ProspectiveIntervals[
+          c("lower boundary", "upper boundary"), "NPV"]
+        rValues$NNTpos_ProspectiveInterval = rValues$ProspectiveIntervals[
+          c("lower boundary", "upper boundary"), "NNTpos"]
+        rValues$NNTneg_ProspectiveInterval = rValues$ProspectiveIntervals[
+          c("lower boundary", "upper boundary"), "NNTneg"]
+      })
+    })
+
+#    output$PPVconfidenceInterval = renderText({rValues$})
+
+###### Retrospective design ####
+
+    observe({
+      try({
+        sesp = sesp.from.NNT(
+          NNTpos = input$NNTpos,
+          NNTneg = input$NNTneg,
+          prev = input$prevalence
+        )
+        rValues$sensitivity = sesp["se"]
+        rValues$specificity = sesp["sp"]
+        rValues$sensitivityPercent = round(100 * rValues$sensitivity)
+        rValues$specificityPercent = round(100 * rValues$specificity)
+        rValues$NposCases = round(input$samplesizeCases* rValues$sensitivity)
+        rValues$NposControls = round(input$samplesizeControls * (1-rValues$specificity))
+
+        rValues$RetrospectiveIntervals = NNTintervalsRetrospective(
+          Ncases = input$samplesizeCases,
+          Ncontrols = input$samplesizeControls,
+          NposCases = rValues$NposCases,
+          NposControls = rValues$NposControls,
+          prev = input$prevalence)
+        rValues$Se_RetrospectiveInterval = rValues$RetrospectiveIntervals[
+          c("lower boundary", "upper boundary"), "sensitivity"]
+        rValues$Sp_RetrospectiveInterval = rValues$RetrospectiveIntervals[
+          c("lower boundary", "upper boundary"), "specificity"]
+        rValues$NNTpos_RetrospectiveInterval = rValues$RetrospectiveIntervals[
+          c("lower boundary", "upper boundary"), "NNTpos"]
+        rValues$NNTneg_RetrospectiveInterval = rValues$RetrospectiveIntervals[
+          c("lower boundary", "upper boundary"), "NNTneg"]
+      })
+    })
+
     output$plotNNTgoals = renderPlot({
       plotDiscomfort(drawPosNeg=TRUE,
                      NNTlower = input$NNTlower,
@@ -127,6 +205,17 @@ shinyServerFunction =
     }
     #, height=280
     )
+
+
+    wasClicked =  function(button) {
+      if(exists("input"))
+        if(!is.null(button) ) {
+          if(button > 0) {
+            return(TRUE)
+          }
+        }
+      return(FALSE)
+    }
   }
 #debug(shinyServerFunction)
 shinyServer(func=shinyServerFunction)

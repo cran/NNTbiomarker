@@ -1,8 +1,8 @@
 Package: NNTbiomarker
 Type: Package
 Title: Calculate Design Parameters for Biomarker Validation Studies
-Version: 0.28
-Date: 2015-05-05
+Version: 0.29.11
+Date: 2015-08-20
 Author: Roger Day
 Maintainer: Roger Day <day01@pitt.edu>
 Description: Helps a clinical trial team  discuss
@@ -22,12 +22,12 @@ Description: Helps a clinical trial team  discuss
     is visualization of a "contra-Bayes" theorem, which produces criteria for
     retrospective case-controls studies.
 License: GPL-3
-Imports: shiny, xtable, stringr
+Imports: shiny, xtable, stringr, magrittr, mvbutils
 Collate: aaa.R ifVerboseCat.R sesp-pv-NNT.R achievable.se.sp.R
-        binom.confint.R NNTintervals.R run.R
-Suggests: knitr
+        binom.confint.R NNTintervals.R run.R ROCplots.R argmin.R zzz.R
+Suggests: testthat (>= 0.8.1), knitr (>= 1.6), rmarkdown, ggplot2, plyr
 VignetteBuilder: knitr
-Packaged: 2015-05-05 04:07:44 UTC; Roger
 NeedsCompilation: no
+Packaged: 2015-08-20 20:36:16 UTC; Roger
 Repository: CRAN
-Date/Publication: 2015-05-05 16:14:37
+Date/Publication: 2015-08-21 07:38:39
